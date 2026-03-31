@@ -7,12 +7,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root{
-      /* Cytton-inspired branding colors (green gradient + dark footer) */
+      
       --bg:#f4fbf7;
       --card:#ffffff;
       --muted:#6b7280;
-      --accent:#0f7a53;     /* deep teal/green */
-      --accent-2:#79d88a;   /* light lime green */
+      --accent:#0f7a53;    
+      --accent-2:#79d88a;   
       --success:#10b981;
       --danger:#ef4444;
       --radius:12px;
@@ -114,7 +114,7 @@
   <script>
     const base = '/api/v1';
 
-    // toast helper with types
+    
     const toastEl = document.getElementById('toast');
     function showToast(message, type = 'info', ms = 3000){
       toastEl.innerText = message;
@@ -123,7 +123,7 @@
       setTimeout(()=>{ toastEl.style.display = 'none' }, ms);
     }
 
-    // small spinner element
+    
     function makeSpinner(){
       const s = document.createElement('span');
       s.className = 'spinner';
@@ -134,7 +134,7 @@
       return s;
     }
 
-    // attach keyframes
+    
     const styleSheet = document.createElement('style');
     styleSheet.innerHTML = '@keyframes spin{to{transform:rotate(360deg)}}';
     document.head.appendChild(styleSheet);
@@ -143,7 +143,7 @@
       if(loading){
         button.dataset.orig = button.innerHTML;
         button.disabled = true;
-        // insert spinner then label
+        
         const spinner = makeSpinner();
         button.innerHTML = ''; button.appendChild(spinner); button.appendChild(document.createTextNode(label||'Working'));
       } else {
@@ -238,7 +238,7 @@
 
     function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 
-    // initial load
+    
     fetchTasks();
   </script>
 </body>
