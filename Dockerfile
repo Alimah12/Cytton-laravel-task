@@ -1,21 +1,21 @@
 FROM serversideup/php:8.3-fpm-nginx
 
-# Set working directory
 WORKDIR /var/www/html
-
-# Copy project files
 
 COPY --chown=www-data:www-data . .
 
-# Install intl extension (required by PHP internationalization functions)
-# and cleanup apt lists to keep the image small
+USER root
+
 RUN apt-get update \
-	&& apt-get install -y libicu-dev \
+	&& apt-get install -y --no-install-recommends libicu-dev \
 	&& docker-php-ext-install intl \
 	&& rm -rf /var/lib/apt/lists/*
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+USER www-data
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Set permissions for Laravel
-RUN chmod -R 775 storage bootstrap/cache
+USER root
+RUN chown -R www-data:www-data /var/www/html \
+	&& chmod -R 775 storage bootstrap/cache
+
+USER www-data
