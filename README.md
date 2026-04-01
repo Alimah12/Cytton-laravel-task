@@ -1,151 +1,166 @@
-# Task Management API
+# Task Management API (Laravel & MySQL)
 
-This project implements a simple Task Management API (Laravel) with MySQL.
+[![Laravel Version](https://img.shields.io/badge/Laravel-11.x-red)](https://laravel.com)
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-blue)](https://php.net)
 
-Live demo: https://cytton-laravel-task.onrender.com
+A robust, production-ready Task Management API built for the Laravel Engineer Intern Take-Home Assignment. This project demonstrates strict adherence to business rules, database integrity, and modern deployment practices.
 
-Features
-- Create tasks
-- List tasks (filter by status, sorted by priority then due date)
-- Update task status (only forward transitions)
-- Delete tasks (only when status is `done`)
-- Daily report endpoint
+* **Live API:** [https://cytton-laravel-task.onrender.com/api/v1/tasks]
+* **Live UI Dashboard:** [https://cytton-laravel-task.onrender.com]
 
-Quick setup
+---
 
-1. Copy your MySQL credentials into `.env` (DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD) or use the provided `.env.example`.
-2. Install dependencies (if not already):
+##  Features & Business Rules
 
-```bash
-composer install
-```
+This API enforces specific constraints to ensure data consistency and logical workflow:
 
-3. Run migrations and seeders:
+### 1. Smart Task Creation
+* **Validation:** `due_date` must be today or in the future.
+* **Integrity:** Unique constraint on `title` + `due_date` prevents duplicate entries.
+* **Priority Levels:** Strictly enforced `low`, `medium`, and `high` enums.
 
-```bash
-php artisan migrate
-php artisan db:seed
-```
+### 2. Intelligent Listing
+* **Sorting Logic:** Tasks are sorted by **Priority** (High → Low) and then by **Due Date** (Ascending).
+* **Filtering:** Supports optional `status` query parameters (e.g., `?status=pending`).
 
-Local MySQL with Docker Compose
-1. Start a local MySQL service:
+### 3. Sequential Workflow (The "Progress-Only" Rule)
+* Status transitions are strictly unidirectional: `pending` ➔ `in_progress` ➔ `done`.
+* **Validation:** Skipping statuses (Pending to Done) or reverting (Done to In Progress) returns a `422 Unprocessable Entity`.
 
-```bash
-docker compose -f docker-compose.mysql.yml up -d
-```
+### 4. Protected Deletion
+* **Safety Check:** Only tasks marked as `done` can be deleted. Attempting to delete active tasks returns a `403 Forbidden`.
 
-2. Copy `.env.example` to `.env` and adjust if necessary:
+### 5. Daily Insight Report (Bonus)
+* Specialized endpoint providing a snapshot of task counts grouped by priority and status for a specific date.
 
-```bash
-cp .env.example .env
-# then set APP_KEY (php artisan key:generate) and other vars
-```
+---
 
-3. Install and run migrations/seeds (then start server):
+##  API Endpoints (Prefix: `/api/v1`)
 
-```bash
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/tasks` | Create a new task |
+| `GET` | `/tasks` | List all tasks (supports `?status=`) |
+| `PATCH` | `/tasks/{id}/status` | Update status (Sequential only) |
+| `DELETE` | `/tasks/{id}` | Delete task (Must be `done`) |
+| `GET` | `/tasks/report` | Daily summary (Requires `?date=YYYY-MM-DD`) |
+
+---
+
+## Local Setup
+
+### Prerequisites
+* Docker & Docker Compose
+* PHP 8.2+ & Composer
+
+### Quickstart with Docker
+1.  **Clone and Enter:**
+    ```bash
+    git clone [https://github.com/your-username/cytton-laravel-task.git]
+
+    cd cytton-laravel-task
+    ```
+2.  **Environment Setup:**
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Run Containers:**
+    ```bash
+    docker compose up -d
+    docker exec -it task-app php artisan migrate --seed
+    ```
+### Installation & Setup
+## Manual Installation
+
 composer install
 php artisan key:generate
-php artisan migrate --force
-php artisan db:seed --force
-php artisan serve --host=0.0.0.0 --port=8000
-```
+php artisan migrate --seed
+php artisan serve
 
-Deployment (Render + Clever Cloud MySQL)
+## Deployment Architecture
 
-This repository includes a `Dockerfile` so Render will build the project using Docker. The Docker image installs the PHP `intl` extension (required by Laravel) and runs Composer to install PHP dependencies.
+## The application is containerized and deployed using a custom Docker configuration optimized for production environments.
 
-Clever Cloud (MySQL)
-- Create a MySQL add-on on Clever Cloud and copy the connection variables.
-- In the Render service settings, add these environment variables:
-  - `DB_CONNECTION=mysql`
-  - `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` (from Clever Cloud)
-  - `APP_ENV=production`
-  - `APP_KEY` (generate locally with `php artisan key:generate --show` and paste the value)
+Environment
+Runtime: PHP 8.2 (FPM)
+Extensions: intl, pdo_mysql, bcmath
+Database
+Provider: Clever Cloud
+Type: Managed MySQL Instance
+CI/CD Pipeline
+Automated builds and deployments via Render's Docker environment
 
-Render
-- In the Render service, select the repository and choose "Docker" as the environment (the `Dockerfile` in this repo enables that).
-- Start command: `php artisan serve --host=0.0.0.0 --port=$PORT`
-- After deploy, run migrations and seeders via Render console or add a post-deploy command:
+## Required Environment Variables
+## Variable  	## Description
+APP_KEY 	    Generated Laravel application key
+APP_DEBUG	    Set to false in production
+DB_HOST	        Clever Cloud MySQL host
+DB_DATABASE	    Database name
+DB_USERNAME	    Database username
+DB_PASSWORD	    Database password
 
-```bash
-php artisan migrate --force
-php artisan db:seed --force
-```
+## API Usage Examples
+   ## Create Task
 
-Note: `intl` is installed in the provided `Dockerfile` to avoid runtime errors on Render.
-
-Notes
-- Ensure `APP_KEY` is set in production. Use `php artisan key:generate --show` locally and copy the value to the host env.
-- For Railway/Render automated deploys, add `php artisan migrate --force` as a post-deploy command or run via their console.
-
-
-API routes (prefix `/api/v1`)
-
-- POST `/api/v1/tasks` — create task
-- GET `/api/v1/tasks` — list tasks (optional `?status=pending`)
-- PATCH `/api/v1/tasks/{id}/status` — update status (body `{ "status": "in_progress" }`)
-- DELETE `/api/v1/tasks/{id}` — delete task (only when `done`)
-- GET `/api/v1/tasks/report?date=YYYY-MM-DD` — daily report
-
-Registered endpoints (as deployed)
-
-- GET|HEAD   api/test .................................... routes/api.php:7
-- GET|HEAD   api/v1/tasks ........................ Api\\TaskController@index
-- POST       api/v1/tasks ........................ Api\\TaskController@store
-- GET|HEAD   api/v1/tasks/report ................ Api\\TaskController@report
-- DELETE     api/v1/tasks/{id} ................. Api\\TaskController@destroy
-- PATCH      api/v1/tasks/{id}/status ..... Api\\TaskController@updateStatus
-
-Example curl requests
-
-Create:
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks \
+   curl -X POST https://cytton-laravel-task.onrender.com/api/v1/tasks \
   -H "Content-Type: application/json" \
-  -d '{"title":"My Task","due_date":"2026-04-01","priority":"high"}'
-```
+  -d '{"title":"Final Review","due_date":"2026-04-01","priority":"high"}'
 
-List:
-```bash
-curl http://localhost:8000/api/v1/tasks
-```
+  ## Validation - Past Due Date
 
-Update status:
-```bash
-curl -X PATCH http://localhost:8000/api/v1/tasks/1/status \
-  -H "Content-Type: application/json" \
-  -d '{"status":"in_progress"}'
-```
+  curl -i -X POST https://cytton-laravel-task.onrender.com/api/v1/tasks \
+-H "Content-Type: application/json" \
+-H "Accept: application/json" \
+-d '{"title": "Time Travel Task", "due_date": "2026-03-20", "priority": "low"}'
 
-Delete:
-```bash
-curl -X DELETE http://localhost:8000/api/v1/tasks/1
-```
+## Validation - Invalid Priority
 
-Report:
-```bash
-curl http://localhost:8000/api/v1/tasks/report?date=2026-04-01
-```
+curl -i -X POST https://cytton-laravel-task.onrender.com/api/v1/tasks \
+-H "Content-Type: application/json" \
+-H "Accept: application/json" \
+-d '{"title": "Urgent Task", "due_date": "2026-04-10", "priority": "super-high"}'
 
-Test the live deployment (Render):
+## Sorting Order
 
-```bash
-curl https://cytton-laravel-task.onrender.com/api/test
-curl https://cytton-laravel-task.onrender.com/api/v1/tasks
-```
+curl -i -X GET https://cytton-laravel-task.onrender.com/api/v1/tasks -H "Accept: application/json"
 
-Web UI
+## Status Filtering
 
-The project includes a minimal UI to interact with the API at the site root (`/`).
+curl -i -X GET "https://cytton-laravel-task.onrender.com/api/v1/tasks?status=pending" -H "Accept: application/json"
 
-- Local: http://localhost:8000/
-- Live (Render): https://cytton-laravel-task.onrender.com/
+## Status Transition
 
-The UI supports creating tasks, filtering by status, advancing a task's status, and deleting tasks (only when status is `done`).
+curl -i -X PATCH https://cytton-laravel-task.onrender.com/api/v1/tasks/5/status \
+-H "Content-Type: application/json" \
+-H "Accept: application/json" \
+-d '{"status": "in_progress"}'
 
-Deploy notes
-- Any host that supports Laravel + MySQL (Render, Railway, Heroku with ClearDB, etc.) will work.
-- Ensure `APP_ENV`, `APP_KEY`, and DB variables are set in the deployment environment and run migrations.
+## Forbidden Transition (Revert)
 
-# Cytton-laravel-task
+curl -i -X PATCH https://cytton-laravel-task.onrender.com/api/v1/tasks/5/status \
+-H "Content-Type: application/json" \
+-H "Accept: application/json" \
+-d '{"status": "pending"}'
+
+## Forbidden Transition (Skip)
+
+curl -i -X PATCH https://cytton-laravel-task.onrender.com/api/v1/tasks/6/status \
+-H "Content-Type: application/json" \
+-H "Accept: application/json" \
+-d '{"status": "done"}'
+
+## Valid Deletion (done)
+
+curl -i -X DELETE https://cytton-laravel-task.onrender.com/api/v1/tasks/2 -H "Accept: application/json"
+
+## Forbidden Deletion (in_progress)
+
+curl -i -X DELETE https://cytton-laravel-task.onrender.com/api/v1/tasks/5 -H "Accept: application/json"
+
+## The Report
+
+curl -i -X GET "https://cytton-laravel-task.onrender.com/api/v1/tasks/report?date=2026-03-31" -H "Accept: application/json"
+
+Author
+Ali Malala Full Stack Developer
